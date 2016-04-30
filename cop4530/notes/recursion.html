@@ -1,0 +1,226 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="Author" content="Bob Myers">
+   <meta name="GENERATOR" content="Mozilla/4.73 [en] (Win98; U) [Netscape]">
+   <title>Recursion</title>
+</head>
+<body text="#000000" bgcolor="#FFFFFF">
+
+<h1>Recursion</h1>
+
+<ul>
+<li>A <b>recursive function</b> is a function that calls itself. </li>
+<li>Many tasks can be done with either recursion or with iteration
+ <ul>
+ <li>iteration involves a loop, but not recursive calls</li>
+ </ul>
+</li>
+<li>When using a loop, one should always allow a "way out" (avoid infinite 
+looping</li>
+<li>Similarly, when using recursion, make sure there's a way out
+ <ul>
+ <li>"Infinite" recursion will actually result in a crash, when the 
+     activation records (from function calls) overrun the stack</li>
+ <li>At some point, the function has to stop calling itself and be allowed 
+     to exit (each instance of the function returns to the previous 
+     instance -- unwinding the stack)</li>
+ </ul>
+</li>
+</ul>
+
+<h3>A typical example:  Factorials</h3>
+
+<ul>
+<li>n! is defined as n * (n-1) * (n-2) * ... * 1.</li>
+<li>We can define a factorial function (iteratively) as follows:
+<pre>
+   unsigned long Factorial(int n)
+   {
+      unsigned long f = 1;
+      for (int i = n; i >= 1; i--)
+         f *= i;
+
+      return f;		// this is the answer
+   }
+</pre>
+</li>
+
+<li>But notice also that:
+<pre>
+  n! = n * (n-1)!
+</pre>
+</li>
+
+<li>By using this formula, we can define a factorial function recursively:
+<pre>
+   unsigned long Factorial(int n)
+   {
+	if (n <= 1)	// base case
+	   return 1;
+	else
+	   return (n * Factorial(n-1));
+   }
+</pre>
+</li>
+
+<li>The recursive version of the function calls itself, but it will 
+eventually stop calling itself once we get down to n = 1. </li>
+<li>Notice that each recursive call will invoke the function for a 
+smaller value of n.  Namely, n-1 ).</li>
+<li>So, which is better?
+ <ul>
+ <li>In this case, they are close to the same in performance</li>
+ <li>Same number of "recursive" function calls as loop iterations, 
+     typically</li>
+ <li>Recursive version incurs a little extra overhead (activation records 
+     on the function call stack)</li>
+ </ul>
+</li>
+
+</ul>
+
+<h3>Is Recursion Better?</h3>
+
+<ul>
+<li>Which is better?  Recursion or iteration?  Depends on the 
+situation!</li>
+
+<li>Look at this example -- the Fibonnaci sequence</li>
+
+<li>The Fibonnaci sequence itself is <i>defined</i> recursively:
+ <ul>
+ <li>First and second sequence elements are both 1.</li>
+ <li>In general, the Nth sequence element is defined to be the sum of 
+     elements N-1 and N-2</li>
+ <li>More formally:  Fib(n) = Fib(n-1) + Fib(n-2), where the argument is 
+     the element number of the sequence (1st, 2nd, 3rd, etc)</li>
+ </ul>
+</li>
+
+<li>So does this mean the recursive solution is the best?  Compare the 
+iterative solution with the recursive solution</li>
+
+<li><b>Iterative Fibonnaci function</b>:
+<pre>
+  int Fib(int n)
+  {
+     int n1 = 1, n2 = 1, n3;
+     int i = 2;
+     while (i < n)
+     {
+        n3 = n1 + n2;
+        n1 = n2;
+        n2 = n3;
+        i++;
+     }
+     return n2;
+  }
+</pre>
+</li>
+
+<li><b>Recursive Fibonnaci function</b>:
+<pre>
+  int Fib(int n)
+  {
+    if (n <= 0)		return 0;	// base case	
+    else if (n == 1)    return 1;	// base case
+    else
+	return Fib(n-1) + Fib(n-2);	// recursive computation
+  }
+</pre>
+</li>
+
+<li>Which one is more efficient?
+ <ul>
+ <li>One of these is DEFINITELY more efficient than the other</li>
+ <li>Why?</li>
+ <li><a href="../examples/recursion/fib.cpp">Try them out</a></li>
+ <li>Looks like the iterative version wins this race!</li>
+ </ul>
+</li>
+
+<li>Comparing recursion and iteration
+ <ul>
+ <li>Any problem that can be coded with a recursive solution can also be 
+     done iteratively with a loop</li>
+ <li>Often, a recursive function is easier to WRITE!</li>
+ <li>Recursion does involve extra overhead (function calls, activation 
+     records on the program call stack)</li>
+ <li>So, with equivalent recursive and iterative solutions, the iterative 
+     one usually is slightly more efficient</li>
+ <li>In some case, the RUN time of one is more efficient than the other, 
+     giving us a clearer choice</li>
+ </ul>
+</li>
+
+</ul>
+
+<h3>Sorting algorithms</h3>
+
+<ul>
+<li>There are many solutions to sorting a list, like an array</li>
+<li>You've probably seen:
+ <ul>
+ <li>Bubble sort</li>
+ <li>Selection sort</li>
+ </ul>
+</li>
+
+<li>Two sort algorithms (usually written with recursion) that 
+have much better performance time:
+ <ul>
+ <li>Quicksort</li>
+ <li>Merge sort</li>
+ </ul>
+</li>
+
+<li>These two are generally considered to be the fastest sort algorithms 
+to choose from -- and the recursive versions are easier to write</li>
+
+</ul>
+
+
+<h3><a href="../../savitch3c++/Ch13/">Examples from textbook 
+(Savitch)</a></h3>
+
+<hr>
+
+<h3>Examples from a former textbook (Gaddis)</h3>
+
+<ul>
+<li><a href="../../gaddis/Chapter%2019/Pr19-2.cpp">Simple example</a> 
+illustrating syntax</li>
+
+<li><a href="../../gaddis/Chapter%2019/Pr19-3.cpp">Factorial</a></li>
+
+<li><a href="../../gaddis/Chapter%2019/Pr19-4.cpp">Recursive function that 
+counts appearances of a letter in a string</a></li>
+
+<li><a href="../../gaddis/Chapter%2019/Pr19-5.cpp">One of the common GCD 
+algorithms</a></li>
+
+<li><a href="../../gaddis/Chapter%2019/Pr19-6.cpp">Recursive Fibonnaci</a> 
+-- YUCK!</li>
+
+<li><a href="../../gaddis/Chapter%2019/Pr19-9.cpp">Recursive version of 
+binary search (on an array)</a></li>
+
+<li><a href="../../gaddis/Chapter%2019/Pr19-10.cpp">Towers of 
+Hanoi</a></li>
+
+<li><a href="../../gaddis/Chapter%2019/Pr19-11.cpp">Quicksort</a></li>
+
+<li><a href="../../gaddis/Chapter%2019/Pr19-12.cpp">Making change 
+(coins)</a> -- search through all combinations</li>
+
+</ul>
+<!--
+
+-->
+
+
+
+</body>
+</html>

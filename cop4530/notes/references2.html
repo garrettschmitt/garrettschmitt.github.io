@@ -1,0 +1,461 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="GENERATOR" content="Mozilla/4.51 [en] (WinNT; I) [Netscape]">
+   <meta name="Author" content="Bob Myers">
+   <title>References and parameter passing</title>
+</head>
+<body text="#000000" bgcolor="#FFFFFF">
+
+<h1>References, parameter passing, returns</h1>
+
+<h2>L-Values and R-Values</h2>
+
+Recall that there is a difference between the concept of an <b>Lvalue</b> and an 
+<b>Rvalue</b>. These get their names from the types of items that can go on the 
+left-hand-side and right-hand-side of an assignment statement.
+
+<ul>
+<li><b>lvalue</b> -- an expression that identifies a non-temporary object. This is 
+typically a changeable storage location, like a named-variable or array/vector location</li>
+<li><b>rvalue</b> -- an expression that identifies a temporary object or a value not 
+associated with a stored object (like a literal)
+ <ul>
+ <li>Generally, an rvalue exists only during the statement in which it appears, and will be 
+     deallocated/reclaimed memory after the statement or context is over</li>
+ </ul>
+</li>
+</ul>
+Examples:
+<pre>
+   int x, y;			// L-values
+   int list[10];		// L-value
+   list[5] = 20;		// list[5] is an L-value (a storage location in the named array)
+   int z = x + y;		// x + y is an R-value.  z is an L-value
+   string str = "Hello";	// str is L-value.  "Hello" is R-value
+
+   // Assume Fraction is a class
+   Fraction f;			// L-value
+   Fraction g(1,2);		// L-value
+   g = Fraction(3,4);		// this direct constructor call creates an R-value
+				//  which is assigned into g with assignment operator
+</pre>
+
+L-values can usually be used in R-value positions.
+<pre>
+   x = y;			// y is L-value, but can be used in R-value position
+
+</pre>
+
+
+<h2>Lvalue References</h2>
+
+The standard reference variable you've learned about previously is now referred to in the 
+C++11 standard as an <b>Lvalue reference</b>.  The following notes page from COP 3014 
+illustrates the usual use of this type of reference variable:
+
+<ul>
+<li>
+<a href="http://www.cs.fsu.edu/~myers/c++/notes/references.html">Reference variables</a>
+</li>
+</ul>
+
+The most notable use of reference variables has been in parameter passing. Most notably the 
+choices between:
+
+<ul>
+<li><b>Pass by value</b> -- makes a local copy of passed argument. Accepts R-values</li>
+<li><b>Pass by reference</b> -- does not make a copy, allows original argument to be 
+changed. Only accepts L-values</li>
+<li><b>Pass by const reference</b> -- does not make a copy, prevents original argument from 
+change. Accepts R-values</li>
+</ul>
+
+The usual decision factors for choosing how to pass parameters are:
+
+<ol>
+<li>Do we want the formal parameter to be able to change the original argument?  If yes, 
+choose <b>pass by reference</b></li>
+<li>Otherwise, is this a small object with little copy overhead?  (If so, <b>pass by 
+value</b> is fine).  <br>Or is this a large object with large or complex copy overhead?  (If 
+so, 
+best to use <b>pass by const reference</b>)</li>
+</ol>
+
+<h3>Other uses for L-value references</h3>
+
+
+Remember that a reference variable acts as a nickname, or synonym, for the object it 
+references.  This comes in handy in a few other places besides parameter passing
+
+<h4>Aliasing complex names</h4>
+
+<ul>
+
+<li>Suppose we have the following object:
+<pre>
+  vector&lt;string> myList;		// a vector of strings, called myList
+</pre>
+</li>
+
+<li>Since vectors overload the bracket operator [], we could end up with some complicated 
+index location based on a function call, like this:
+
+<pre>
+  myList[ indexChoice(x, myList.size() ) ]
+</pre></li>
+
+<li>What if this choice of location were being used in some other calls in multiple places?  
+By using a reference for the above, we can get simpler statements. We can even combine with the 
+<tt>auto</tt> keyword to auto-detect the type, if it's not a simple type.
+<pre>
+  string & whichItem =  myList[ indexChoice(x, myList.size() ) ];
+
+//  (or)
+
+  auto & whichItem =  myList[ indexChoice(x, myList.size() ) ];
+</pre></li>
+
+<li>This would allow easier usage in a more complicated later call, like this:
+<pre>
+  if ( check1(whichItem) && check2(whichItem) && whichItem.length() < 100)
+     whichItem.push_back('X');
+</pre>
+
+<tt>whichItem</tt> is used 4 times in the above sample code. This is much easier than 
+writing 
+out and evaluating <tt>myList[ indexChoice(x, myList.size() ) ]</tt> 4 times.
+<br>&nbsp;</li>
+
+<li>Also note that 
+making this a reference variable was crucial, because in the above example, 
+<tt>push_back()</tt> is a mutator function of the string class. If <tt>whichItem</tt> were a 
+value variable, we would have inserted data into a copy, not the original.</li>
+</ul>
+
+
+<h4>Use in range-based <tt>for</tt> loops</h4>
+
+<ul>
+<li>Range-based <tt>for</tt> loops are nice shorthand for operations that will apply to 
+every element of an array or collection.  But a value variable in the range-based <tt>for</tt> 
+will be a copy of the data from the collection:
+
+<pre>
+  int array[10] = {2, 4, 6, 8, 10};
+
+  // Good usage. Will print each array element
+  for (int x : array)
+     cout &lt;&lt; x &lt;&lt; '\n';
+
+  // Bad usage. Attempts to increment each array slot, but only affects x, a copy
+  for (int x : array)
+     ++x;
+</pre></li>
+
+<li>Use a reference variable as the iteration variable when you want to change collection 
+elements:
+<pre>
+  // This fixes the prior bad attempt
+  for (int & x : array)
+     ++x;
+</pre></li>
+</ul>
+
+<h4>Avoiding unnecssary copies</h4>
+
+<ul>
+<li>Suppose there is a function <tt>max()</tt> that returns the largest value in a vector or 
+other collection. Then given a vector or collection called <tt>myList</tt>, would could 
+naturally make this call:
+<pre>
+  auto x = max(myList);
+</pre>
+</li>
+
+<li>However, if this is a collection that stores large objects, we are making a copy of a 
+large object into x.  If a copy is needed, fine.  But if not, we could avoid the extra copy 
+overhead like this:
+<pre>
+  auto & x = max(myList);
+</pre>
+</li>
+<li>If appropriate, <tt>auto</tt> will deduce <tt>const</tt>-ness, but if not using 
+<tt>auto</tt>, we can also declare as a <tt>const</tt> reference if appropriate:
+<pre>
+  const MyBigType & x = max(myList);
+</pre>
+</li>
+
+</ul>
+<br>
+
+<h3>Return-by-value vs Return-by-reference</h3>
+
+Note that function returns have the same options as the parameter passing list:
+<ul>
+<li><b>Return by value</b> -- makes copy of the value returned (can be inefficient on 
+large objects)</li>
+<li><b>Return by reference</b> -- no copy</li>
+<li><b>Return by const reference</b> -- no copy, caller cannot use to modify the item</li>
+</ul>
+
+However, be very careful when returning a reference!  Make sure you are returning something 
+that will still live past the function's execution!  See these two sample functions:
+
+<pre>
+  // WHICH of these two functions is a GOOD definition?
+  // and WHICH of these uses a reference return badly?
+
+  const string & findMax(const vector&lt;string> & list)
+  {
+     int maxIndex = 0;
+     for (int i = 1; i < list.size(); i++)
+        if ( list[maxIndex] < list[i])
+           maxIndex = i;
+
+     return list[maxIndex];
+  }
+
+  const string & findMax(const vector&lt;string> & list)
+  {
+     string maxValue = list[0];
+     for (int i = 1; i < list.size(); i++)
+        if (maxValue < list[i])
+            maxValue = list[i];
+ 
+     return maxValue;
+  }
+
+</pre>
+
+<h2>R-value references</h2>
+
+c++11 introduced a new kind of reference variable -- an <b>r-value reference</b>
+<ul>
+<li>To declare one, use <tt>&&</tt> after a type
+<pre>
+  int & 		// type designation for an L-value reference
+  int && 		// type designation for an R-value reference
+</pre>
+</li>
+<li>L-value references can only refer to L-values</li>
+<li>R-value references can reference to R-values (temporaries)
+<pre>
+  int x, y, z;		// regular variables
+  int & r = x;		// L-value reference to the variable x
+  int & r2 = x + y;	// This would be ILLEGAL, since x + y is an R-value
+  int && r3 = x + y;	// LEGAL. R-value reference, referring to R-value
+</pre>
+</li>
+<li>More examples:
+<pre>
+  string str = "Hello";
+  string & rstr = str;			// reference to str
+  rstr += " World";			// str is now "Hello World"
+
+  string & bad1 = "hello";		// ILLEGAL: "hello" is not lvalue
+  string & bad2 = str + " leader";	// ILLEGAL: str + " leader" is not lvalue
+  string & bad3 = str.substr(0,4);	// ILLEGAL: call to function does not return lvalue
+
+  // HOWEVER
+  string && bad1 = "hello";		// LEGAL -- right side is rvalue
+  string && bad2 = str + " leader";	// LEGAL
+  string && bad3 = str.substr(0,4);	// LEGAL
+</pre>
+</li>
+</ul>
+
+<h3>R-value references as parameters</h3>
+
+<ul>
+<li>While it may not be immediately obvious why one would want to do this, r-value 
+references create a 4th type of parameter passing.  Example:
+<pre>
+  void Func(const int & x);		// pass by const reference (Lvalue)
+  void Func(int && x);			// pass by r-value reference
+</pre>
+</li>
+
+<li>Normally, the first of these functions will accept R-values to be passed as well.
+<br>But if we add the second function, this one will accept R-values to be passed, by 
+R-value 
+reference.
+<pre>
+   int x = 10;
+   Func(x);		// calls first function
+   Func(x + 5);		// calls second function (r-value)
+</pre>
+</li>
+
+<li><a href="../examples/newfeatures/references.cpp">Try this example</a> to illustrate 
+the difference in this syntax</li>
+
+<li>There is also a <tt>std::move</tt> function in the <tt>&lt;utility></tt> library, which 
+will cast the parameter as an r-value reference:
+<pre>
+   vector&lt;string> list;		            // vector of strings
+   vector&lt;string> && x = std::move(list); 	    // returns r-value reference to list
+</pre>
+This is easier than doing it manually with a type cast:
+<pre>
+   vector&lt;string> && y;
+   y = static_cast&lt;vector&lt;string> && >(list);	// type cast version
+</pre>
+This will be used in examples below.
+</li>
+
+</ul>
+
+
+
+
+<h3>Why?  What's the point?!</h3>
+
+Well, I'm glad you asked... :-)
+
+<ul>
+<li>The point is to help instantiate <b>move semantics</b></li>
+ <ul>
+ <li>In many cases, we end up copying r-values (temporaries) into more permanent storage 
+     variables.</li>
+ <li>For small objects, especially those not involving internal pointers or dynamic 
+     allocation, this copy is not expensive. No problem</li> 
+ <li>What about more expensive copy situations? (dynamic allocation, large objects, 
+     etc)</li>
+ <li><b>move semantics</b>, through r-value references, can allow us to swap resources with 
+     the temporary r-value, which is about to be destroyed anyways</li>
+ <li>To do this, we need to be able to <i>change</i> the temporary r-value! Hence, r-value 
+     references!</li>
+ </ul>
+<br>
+</li>
+
+<li>Consider this kind of swap function:
+<pre>
+  void swap(int & x, int & y)
+  {
+     int temp = x;	// copy x into temp
+     x = y; 		// copy y into x
+     y = temp;		// copy temp into y
+  }
+</pre>
+We are making three copies to swap two things.  Since these are ints, this is pretty 
+inexpensive.  But what about this one?
+<pre>
+  void swap(vector&lt;string> & x, vector&lt;string> & y)
+  {
+     vector&lt;string> temp = x;	// copy x into temp
+     x = y; 			// copy y into x
+     y = temp;			// copy temp into y
+  }
+</pre>
+Not so efficient. Copying a vector is expensive, and this does it three times.
+<br>&nbsp;
+</li>
+
+<li>The idea behind a <i>move</i> is to have these two vectors trade resources (which would 
+involve swapping their internal pointers), rather than make the tedious 3 copies above. This 
+will happen if we:
+ <ul>
+ <li>do the swap based on r-value references (convert with <tt>std::move</tt>, from 
+     <tt>&lt;utility></tt>)</li>
+ <li>are swapping a type that appropriately incorporates a "move constructor" and "move 
+     assignment operator</li>
+ </ul>
+<pre>
+  void swap(vector&lt;string> & x, vector&lt;string> & y)
+  {
+     vector&lt;string> temp = std::move(x);	// move x's resource to temp
+     x = std::move(y);				// move y's resources to x
+     y = std::move(temp);			// move temp's resources to y
+  }
+</pre>
+Note that the <tt>std::vector</tt> class library already has appropriate constructors and 
+assignment operators to incorporate move semantics
+<br>&nbsp;
+</li>
+
+<li>More generically, there is a <tt>std::swap</tt> function (also from 
+<tt>&lt;utility></tt>) that does this as a template function:
+<pre>
+ template &lt;class T> void swap (T& a, T& b)
+ {
+   T c(std::move(a)); a=std::move(b); b=std::move(c);
+ }
+</pre>
+</li>
+</ul>
+
+<h2>Move copy constructor and assignment operator</h2>
+
+<ul>
+<li>You are probably already familiar with these automatic member functions, found in every 
+class:
+<ul>
+ <li>Destructor</li>
+ <li>Copy constructor</li>
+ <li>Assignment operator</li>
+</ul>
+</li>
+
+<li>Recall that we need to write these (destructor for dynamic clean-up, copy constructor and 
+assignment operator for "deep copy") whenever a class has a pointer or reference as member 
+data, typically when using dynamic memory management inside the class.</li>
+
+<li>In C++11, we have two extras, making this <b>big five</b>:
+<ul>
+ <li>Destructor</li>
+ <li>Copy constructor</li>
+ <li>Move constructor</li>
+ <li>Copy assignment operator</li>
+ <li>Move assignment operator</li>
+</ul>
+</li>
+
+<li>The extra two (<b>move constructor</b> and <b>move assignment operator</b>) serve the same 
+general purpose as the regular copy constructor and assignment operator, but they do their work 
+using move semantics.
+ <ul>
+ <li>Move constructor is used when an R-value is the original being used to construct a new 
+     object</li>
+ <li>Move assignment operator is used when an R-value is the right-hand-side of an assignment 
+     into an object</li>
+ <li>These allow the object to trade internal resources with the r-value (temporary), which is 
+     about to be deallocated</li>
+ <li>Saves on excessive copy overhead when not needed</li>
+ <li>We do <b>not</b> want these to run when original (or right-side) is an L-value, like a 
+     named object -- because that object will still exist after.  Copy is needed in that case 
+     (hence copy constructor and copy assignment operator are still relevant)</li>
+ </ul>
+</li>
+</ul>
+
+<p>Here is an example to help demonstrate the move copy 
+constructor and move assignment operator. This is the start of a simple non-templated vector 
+class that stores a list of integers.
+
+<ul>
+<li>
+<a href="../examples/intvector/">IntVector class</a>
+</li>
+</ul>
+
+The protypes of the big five for this class:
+<pre>
+   ~IntVector();				// destructor
+   IntVector(const IntVector& rhs);		// copy constructor
+   IntVector(IntVector&& rhs);			// move constructor
+   IntVector& operator=(const IntVector& rhs);	// copy assignment operator
+   IntVector& operator=(IntVector&& rhs);	// move assignment operator
+</pre>
+
+
+
+
+
+
+
+</body>
+</html>
